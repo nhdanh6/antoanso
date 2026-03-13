@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Học mà chơi - Chơi mà học</title>
+    <style>
+        /* === CSS CƠ BẢN GIỮ NGUYÊN === */
+        body {
+            background-color: #0a0a0a; color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden; user-select: none;
+        }
+
+        .container {
+            border: 2px solid #00ff00; padding: 20px;
+            width: 90%; max-width: 800px; text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.15);
+            background-color: #000; position: relative;
+        }
+
+        h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }
+        .hidden { display: none !important; }
+
+        .hud {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px dashed #00ff00; padding-bottom: 10px;
+            margin-bottom: 20px; font-size: 1.2em;
+        }
+
+        .hearts { font-size: 1.5em; display: flex; gap: 5px; }
+        .heart { transition: all 0.3s; }
+        .broken { animation: breakHeart 0.5s forwards; color: #ff003c; }
+
+        @keyframes breakHeart {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5) rotate(15deg); }
+            100% { transform: scale(0.8) translateY(10px); opacity: 0.5; filter: grayscale(100%); }
+        }
+
+        .character-section {
+            display: flex; align-items: flex-start; gap: 20px;
+            margin-bottom: 20px; text-align: left; min-height: 120px;
+        }
+
+        .avatar {
+            width: 100px; height: 100px; border: 2px solid #00ff00;
+            border-radius: 10px; background: rgba(0,255,0,0.1);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .chat-bubble {
+            background: rgba(0, 255, 0, 0.05); border: 1px dashed #00ff00;
+            padding: 15px; border-radius: 0 15px 15px 15px;
+            flex-grow: 1; position: relative; min-height: 80px;
+        }
+
+        .chat-bubble::before {
+            content: ''; position: absolute; left: -10px; top: 0;
+            border-top: 10px solid #00ff00; border-right: 10px solid transparent;
+            border-bottom: 10px solid transparent; border-left: 10px solid transparent;
+        }
+
+        .cursor::after { content: '█'; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            margin-top: 10px; opacity: 0; transition: opacity 0.5s;
+        }
+        .grid.visible { opacity: 1; }
+
+        .item {
+            border: 1px solid #00ff00; padding: 15px; cursor: pointer;
+            transition: all 0.2s; font-size: 16px; background: rgba(0, 255, 0, 0.05);
+        }
+        .item:hover { background: rgba(0, 255, 0, 0.2); }
+        .item.locked { background: #00ff00; color: #000; font-weight: bold; pointer-events: none; }
+        .item.wrong { background: #ff003c; color: #fff; border-color: #ff003c; pointer-events: none; }
+
+        .glitch-effect {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both;
+            border-color: #ff003c; box-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+        }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-5px, 5px) }
+            40% { transform: translate(5px, -5px) }
+            60% { transform: translate(-5px, 5px) }
+            100% { transform: translate(0) }
+        }
+
+        .btn {
+            background: #00ff00; color: #000; border: none;
+            padding: 10px 20px; font-size: 18px; font-weight: bold;
+            cursor: pointer; margin-top: 20px; transition: all 0.2s; text-transform: uppercase;
+        }
+        .btn:hover { box-shadow: 0 0 15px #00ff00; transform: scale(1.05); }
+
+        .reward-text {
+            font-size: 2.5em; font-weight: bold; text-shadow: 0 0 20px #00ff00;
+            margin: 20px 0; letter-spacing: 5px; color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="game-container">
+        <div id="intro-screen">
+            <h1>> HỆ THỐNG XÁC MINH HIỆP SĨ SỐ <</h1>
+            <div style="text-align: left; background: rgba(0,255,0,0.1); padding: 15px; border: 1px dashed #00ff00; margin: 20px 0;">
+                <h3>[ TÀI LIỆU HƯỚNG DẪN ]</h3>
+                <p>1. Có 5 Thử thách, mỗi thử thách gồm <span style="color:#ffaa00;">3 câu hỏi liên tiếp</span>.</p>
+                <p>2. Hoàn thành 3 câu sẽ nhận được 1 TỪ KHÓA BẢO MẬT.</p>
+                <p>3. Bạn có <span style="color: #ff4d4d;">3 Mạng (❤️)</span>. Sai 1 câu mất 1 mạng.</p>
+                <p>4. Nếu hết mạng, phải học PHỤ ĐẠO để Hồi Sinh.</p>
+            </div>
+            <button class="btn" onclick="startGame()">Khởi động hệ thống</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="hud">
+                <span id="level-indicator">Khởi tạo...</span>
+                <div class="hearts" id="hearts-container">
+                    <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+                </div>
+            </div>
+            <div class="character-section">
+                <img class="avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=AdminBot" alt="Bot">
+                <div class="chat-bubble">
+                    <strong id="prompt" style="color:#ffaa00;"></strong><br>
+                    <span id="instruction" class="cursor"></span>
+                </div>
+            </div>
+            <div class="grid" id="options-grid"></div>
+        </div>
+
+        <div id="revival-screen" class="hidden">
+            <h2 style="color: #ffaa00;">> BẠN TÔI ƠI! HỌC PHỤ ĐẠO NÀO <</h2>
+            <p>Trả lời đúng <span id="revival-count">3</span> câu hỏi để nạp lại năng lượng (Mỗi câu đúng = 1 ❤️).</p>
+            <div class="character-section" style="margin-top: 20px;">
+                <img class="avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=RescueBot" alt="Rescue Bot">
+                <div class="chat-bubble"><span id="revival-question" class="cursor"></span></div>
+            </div>
+            <div class="grid visible" id="revival-options-grid"></div>
+        </div>
+
+        <div id="reward-screen" class="hidden">
+            <h2>> CHUỖI NHIỆM VỤ HOÀN TẤT <</h2>
+            <div class="reward-text" id="keyword-display">TỪ KHÓA</div>
+            <p>Hãy ghi từ khóa này vào Phiếu Xác Minh.</p>
+            <button class="btn" onclick="nextLevel()">Tiếp tục >></button>
+        </div>
+
+        <div id="game-over-screen" class="hidden">
+            <h1 style="color: #ff003c;">> HỆ THỐNG BỊ XÂM NHẬP <</h1>
+            <p>Dữ liệu đã mất. Nhiệm vụ thất bại.</p>
+            <button class="btn" style="background: #ff003c; color: white;" onclick="location.reload()">Thử lại từ đầu</button>
+        </div>
+
+        <div id="victory-screen" class="hidden">
+            <h1 style="color: #00ff00;">> XÁC MINH THÀNH CÔNG <</h1>
+            <p>Tuyệt vời! Bạn đã trở thành Hiệp Sĩ Số xuất sắc.</p>
+        </div>
+    </div>
+
+    <script>
+        // === DỮ LIỆU CẤU TRÚC MỚI (3 CÂU/TỪ KHÓA) ===
+        // Để luồng chơi nhanh và mượt, ta thiết lập requiredCorrect: 1 cho tất cả các câu hỏi con.
+        const challenges = [
+            {
+                keyword: "GIỮ AN TOÀN", prompt: "Thử thách 1: Ma trận dữ liệu",
+                questions: [
+                    {
+                        instruction: "[Câu 1/3] Thông tin nào dưới đây BẮT BUỘC phải giữ bí mật?",
+                        options: [{text: "Mật khẩu email", isCorrect: true}, {text: "Tên món ăn yêu thích", isCorrect: false}, {text: "Tên bộ phim vừa xem", isCorrect: false}, {text: "Màu sắc bạn thích", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 2/3] Kẻ xấu có thể làm gì nếu biết địa chỉ nhà và lịch học của bạn?",
+                        options: [{text: "Đến tận nơi đe dọa, bắt cóc", isCorrect: true}, {text: "Tặng quà miễn phí", isCorrect: false}, {text: "Giúp bạn làm bài tập", isCorrect: false}, {text: "Không làm được gì cả", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 3/3] Đâu là một mật khẩu mạnh và an toàn?",
+                        options: [{text: "Hirosima@2024!", isCorrect: true}, {text: "12345678", isCorrect: false}, {text: "matkhaucuatoi", isCorrect: false}, {text: "ngaysinh123", isCorrect: false}]
+                    }
+                ]
+            },
+            {
+                keyword: "KHÔNG GẶP GỠ", prompt: "Thử thách 2: Lời mời trong đêm",
+                questions: [
+                    {
+                        instruction: "[Câu 1/3] Người lạ trên game rủ bạn ra quán net gặp mặt tặng đồ. Bạn làm gì?",
+                        options: [{text: "Chặn tin nhắn và báo người lớn", isCorrect: true}, {text: "Rủ thêm bạn thân đi cùng", isCorrect: false}, {text: "Ra xem thử, thấy nghi thì về", isCorrect: false}, {text: "Cho họ địa chỉ nhà để gửi tới", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 2/3] Bạn chat quen 3 tháng trên Facebook nói muốn đến trường đón bạn. Bạn nghĩ sao?",
+                        options: [{text: "Tuyệt đối không đồng ý", isCorrect: true}, {text: "Rất vui vì có người đưa đón", isCorrect: false}, {text: "Đồng ý vì đã quen 3 tháng", isCorrect: false}, {text: "Xin thêm tiền xe", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 3/3] Vì sao không nên gặp người quen qua mạng khi đi một mình?",
+                        options: [{text: "Họ có thể là kẻ lừa đảo, bắt cóc giả danh", isCorrect: true}, {text: "Vì sợ bị đòi tiền cà phê", isCorrect: false}, {text: "Vì họ thường mượn điện thoại", isCorrect: false}, {text: "Vì sẽ rất ngại ngùng", isCorrect: false}]
+                    }
+                ]
+            },
+            {
+                keyword: "ĐỪNG CHẤP NHẬN", prompt: "Thử thách 3: Cạm bẫy phần thưởng",
+                questions: [
+                    {
+                        instruction: "[Câu 1/3] Đang xem Youtube, có pop-up 'Bạn là người thứ 1 triệu trúng iPhone'. Bạn sẽ:",
+                        options: [{text: "Tắt ngay tab đó đi", isCorrect: true}, {text: "Click vào để điền thông tin", isCorrect: false}, {text: "Gửi link cho bạn bè cùng nhận", isCorrect: false}, {text: "Nhắn tin hỏi cách nhận", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 2/3] Một email lạ gửi file 'danh_sach_diem.exe'. Hành động đúng là:",
+                        options: [{text: "Xóa email không mở file", isCorrect: true}, {text: "Tải về xem điểm của ai", isCorrect: false}, {text: "Click đúp để mở thử", isCorrect: false}, {text: "Lưu vào USB", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 3/3] Tại sao không nên tải phần mềm 'Bẻ khóa' (Crack) miễn phí trên mạng?",
+                        options: [{text: "Thường bị cài cắm mã độc, virus ẩn", isCorrect: true}, {text: "Vì máy tính sẽ chạy quá nhanh", isCorrect: false}, {text: "Vì tốn dung lượng ổ cứng", isCorrect: false}, {text: "Vì hình ảnh xấu", isCorrect: false}]
+                    }
+                ]
+            },
+            {
+                keyword: "KIỂM TRA ĐỘ TIN CẬY", prompt: "Thử thách 4: Máy quét sự thật",
+                questions: [
+                    {
+                        instruction: "[Câu 1/3] Bạn đọc được tin 'Ăn tỏi giúp kháng mọi loại virus'. Bạn nên làm gì đầu tiên?",
+                        options: [{text: "Kiểm tra chéo thông tin trên báo chính thống (VTV, VNExpress...)", isCorrect: true}, {text: "Share ngay lên Facebook gia đình", isCorrect: false}, {text: "Mua ngay 10kg tỏi", isCorrect: false}, {text: "Tin ngay vì có người nổi tiếng share", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 2/3] Dấu hiệu nào cho thấy một trang web có thể an toàn hơn?",
+                        options: [{text: "Địa chỉ có https:// và biểu tượng ổ khóa", isCorrect: true}, {text: "Giao diện nhấp nháy nhiều màu", isCorrect: false}, {text: "Bắt nhập số thẻ ngân hàng ngay", isCorrect: false}, {text: "Có nhiều quảng cáo trúng thưởng", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 3/3] Bất kỳ ai cũng có thể tạo thông tin trên mạng. Đúng hay sai?",
+                        options: [{text: "Đúng. Mạng xã hội không kiểm duyệt 100% sự thật", isCorrect: true}, {text: "Sai. Chỉ chuyên gia mới được đăng", isCorrect: false}, {text: "Sai. Cảnh sát kiểm tra mọi bài đăng", isCorrect: false}, {text: "Đúng. Nhưng mọi thứ trên mạng đều đúng", isCorrect: false}]
+                    }
+                ]
+            },
+            {
+                keyword: "HÃY NÓI RA", prompt: "Thử thách 5: Tín hiệu SOS",
+                questions: [
+                    {
+                        instruction: "[Câu 1/3] Nếu vô tình bấm xóa mất file quan trọng của bố mẹ trên máy tính, em nên:",
+                        options: [{text: "Nói thật với bố mẹ để tìm cách khôi phục", isCorrect: true}, {text: "Xóa luôn cả thùng rác rồi giả vờ không biết", isCorrect: false}, {text: "Tắt máy tính bỏ trốn", isCorrect: false}, {text: "Đổ lỗi cho em trai", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 2/3] Bạn bị một nhóm nặc danh trên TikTok chế ảnh chế giễu. Bạn nên làm gì?",
+                        options: [{text: "Chụp màn hình làm bằng chứng và báo thầy cô/gia đình", isCorrect: true}, {text: "Lập nick ảo chửi lại từng người", isCorrect: false}, {text: "Khóc một mình và bỏ học", isCorrect: false}, {text: "Tự xóa tài khoản TikTok của mình đi", isCorrect: false}]
+                    },
+                    {
+                        instruction: "[Câu 3/3] Bố mẹ và thầy cô có thể giúp em điều gì khi gặp rắc rối trên mạng?",
+                        options: [{text: "Hỗ trợ pháp lý, tâm lý và cách chặn kẻ xấu", isCorrect: true}, {text: "Hack lại máy của kẻ xấu", isCorrect: false}, {text: "Chỉ biết la mắng em", isCorrect: false}, {text: "Đập máy tính của em đi", isCorrect: false}]
+                    }
+                ]
+            }
+        ];
+
+        // Ngân hàng câu hỏi hồi sinh giữ nguyên 20 câu
+        const revivalDatabase = [
+            { q: "Phần mềm nào giúp bảo vệ máy tính?", a: "Trình diệt Virus", bad: ["Word", "Trình duyệt web", "Paint"] },
+            { q: "Mật khẩu nào mạnh nhất?", a: "M@tkhaU123!", bad: ["123456", "matkhau", "ngaysinh123"] },
+            { q: "Nên làm gì khi nhận email lạ có file đính kèm?", a: "Xóa ngay lập tức", bad: ["Mở ra xem", "Tải về máy", "Chuyển tiếp cho bạn"] },
+            { q: "Cyberbullying là gì?", a: "Bắt nạt trên mạng", bad: ["Học trực tuyến", "Mua sắm online", "Chơi game điện tử"] },
+            { q: "Chia sẻ mật khẩu cho ai là an toàn?", a: "Chỉ bố mẹ", bad: ["Bạn thân", "Người lạ trên game", "Người yêu"] },
+            { q: "Dấu hiệu của website lừa đảo thường là?", a: "Bắt nhập mã thẻ cào", bad: ["Có đuôi .edu.vn", "Giao diện đẹp", "Không có quảng cáo"] },
+            { q: "Nên làm gì trước khi đăng ảnh người khác?", a: "Xin phép họ", bad: ["Chỉnh sửa cho đẹp", "Tag tên họ vào", "Đăng luôn cho nóng"] },
+            { q: "Phím tắt nào giúp thoát nhanh một cửa sổ?", a: "Alt + F4", bad: ["Ctrl + C", "Ctrl + V", "F5"] },
+            { q: "Việc nào KHÔNG nên làm ở quán net công cộng?", a: "Lưu mật khẩu ngân hàng", bad: ["Nghe nhạc", "Chơi game", "Tìm tài liệu"] },
+            { q: "Tin nhắn 'Trúng thưởng xe máy' từ số lạ là?", a: "Lừa đảo", bad: ["Sự thật", "Khuyến mãi mạng", "Lỗi tổng đài"] },
+            { q: "Thông tin nào an toàn khi để Public (Công khai)?", a: "Sở thích chung", bad: ["Căn cước công dân", "Biển số xe", "Địa chỉ nhà"] },
+            { q: "Khi bị người lạ dọa nạt trên Facebook, nên?", a: "Chặn và báo cáo", bad: ["Sợ hãi làm theo", "Cãi nhau với họ", "Khóa Facebook"] },
+            { q: "Mã OTP (Mã xác thực 1 lần) có được chia sẻ không?", a: "Tuyệt đối không", bad: ["Cho bạn mượn", "Đăng lên mạng", "Cho nhân viên ngân hàng"] },
+            { q: "Nên cập nhật hệ điều hành máy tính khi nào?", a: "Thường xuyên", bad: ["Không bao giờ", "Chỉ khi máy hỏng", "10 năm 1 lần"] },
+            { q: "Cách tốt nhất để nhớ nhiều mật khẩu mạnh?", a: "Sổ tay/App quản lý", bad: ["Viết lên tay", "Dùng 1 mật khẩu", "Dán lên màn hình"] },
+            { q: "Truy cập Wifi công cộng (không pass) có nguy cơ gì?", a: "Bị đánh cắp dữ liệu", bad: ["Chạy chậm", "Tốn pin", "Máy tính nổ"] },
+            { q: "Tải phần mềm 'Crack' (Bẻ khóa) có thể bị?", a: "Nhiễm mã độc", bad: ["Nhận thưởng", "Máy chạy nhanh hơn", "Không sao cả"] },
+            { q: "Nên làm gì khi lỡ click vào link có virus?", a: "Ngắt mạng, quét virus", bad: ["Tiếp tục dùng", "Tắt màn hình", "Bán máy tính"] },
+            { q: "Nguyên tắc 'Suy nghĩ trước khi đăng' giúp tránh?", a: "Hối hận về sau", bad: ["Tốn dung lượng", "Máy bị đơ", "Mỏi tay"] },
+            { q: "Việc giả mạo tài khoản người khác là hành vi?", a: "Vi phạm pháp luật", bad: ["Bình thường", "Vui vẻ", "Thể hiện đẳng cấp"] }
+        ];
+
+        // === BIẾN TRẠNG THÁI ===
+        let currentLevel = 0; // Từ khóa hiện tại (0 -> 4)
+        let currentSubQuestion = 0; // Câu hỏi hiện tại trong 1 từ khóa (0 -> 2)
+        let lives = 3;
+        let isClickable = false; 
+        let currentRevivalQuestions = [];
+        let revivalAnswered = 0;
+        let typeInterval;
+
+        // === HIỆU ỨNG GÕ CHỮ ===
+        function typeWriter(text, elementId, speed, callback) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = '';
+            let i = 0;
+            clearInterval(typeInterval);
+            
+            typeInterval = setInterval(() => {
+                if (i < text.length) {
+                    el.innerHTML += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typeInterval);
+                    if(callback) callback();
+                }
+            }, speed);
+        }
+
+        // === LOGIC CHÍNH ===
+        function startGame() {
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        // Tải 1 câu hỏi con
+        function loadQuestion() {
+            isClickable = false;
+            const levelData = challenges[currentLevel];
+            const qData = levelData.questions[currentSubQuestion];
+
+            document.getElementById('level-indicator').innerText = `Từ khóa: ${currentLevel + 1}/5 | Câu: ${currentSubQuestion + 1}/3`;
+            document.getElementById('prompt').innerText = levelData.prompt;
+            
+            const grid = document.getElementById('options-grid');
+            grid.classList.remove('visible');
+            grid.innerHTML = '';
+
+            const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'item';
+                btn.innerText = opt.text;
+                btn.onclick = () => handleChoice(btn, opt.isCorrect);
+                grid.appendChild(btn);
+            });
+
+            typeWriter(qData.instruction, 'instruction', 25, () => {
+                grid.classList.add('visible');
+                isClickable = true;
+            });
+        }
+
+        function handleChoice(element, isCorrect) {
+            if (!isClickable || element.classList.contains('locked') || element.classList.contains('wrong')) return;
+
+            if (isCorrect) {
+                element.classList.add('locked');
+                element.innerHTML = '✔️ [ ĐÃ XÁC NHẬN ]';
+                isClickable = false;
+
+                // Chuyển câu hỏi con hoặc hiện phần thưởng
+                setTimeout(() => {
+                    currentSubQuestion++;
+                    if (currentSubQuestion < challenges[currentLevel].questions.length) {
+                        loadQuestion(); // Chuyển câu tiếp theo trong cùng 1 Từ Khóa
+                    } else {
+                        showReward(); // Trả lời xong 3 câu -> Mở khóa Từ Khóa
+                    }
+                }, 800);
+            } else {
+                element.classList.add('wrong');
+                element.innerHTML = '❌ [ LỖI BẢO MẬT ]';
+                loseLife();
+            }
+        }
+
+        function loseLife() {
+            lives--;
+            updateHearts();
+            
+            const container = document.getElementById('game-container');
+            container.classList.remove('glitch-effect');
+            void container.offsetWidth; 
+            container.classList.add('glitch-effect');
+
+            if (lives <= 0) {
+                isClickable = false;
+                setTimeout(() => triggerRevival(), 800);
+            }
+        }
+
+        function updateHearts() {
+            const hearts = document.getElementById('hearts-container').children;
+            for(let h of hearts) { h.classList.remove('broken'); h.innerText = '❤️'; }
+            for (let i = 2; i >= lives; i--) {
+                if(i >= 0) {
+                    hearts[i].innerText = '💔'; hearts[i].classList.add('broken');
+                }
+            }
+        }
+
+        // === LOGIC HỒI SINH ===
+        function triggerRevival() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('revival-screen').classList.remove('hidden');
+            currentRevivalQuestions = [...revivalDatabase].sort(() => 0.5 - Math.random()).slice(0, 3);
+            revivalAnswered = 0;
+            loadRevivalQuestion();
+        }
+
+        function loadRevivalQuestion() {
+            if (revivalAnswered >= 3) {
+                finishRevival(); return;
+            }
+
+            isClickable = false;
+            document.getElementById('revival-count').innerText = 3 - revivalAnswered;
+            const qData = currentRevivalQuestions[revivalAnswered];
+            const grid = document.getElementById('revival-options-grid');
+            grid.innerHTML = ''; grid.classList.remove('visible');
+
+            let ops = [{text: qData.a, isC: true}];
+            qData.bad.forEach(b => ops.push({text: b, isC: false}));
+            ops.sort(() => Math.random() - 0.5);
+
+            ops.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'item'; btn.innerText = opt.text;
+                btn.onclick = () => handleRevivalChoice(btn, opt.isC);
+                grid.appendChild(btn);
+            });
+
+            typeWriter(qData.q, 'revival-question', 25, () => {
+                grid.classList.add('visible'); isClickable = true;
+            });
+        }
+
+        function handleRevivalChoice(element, isCorrect) {
+            if (!isClickable) return;
+            isClickable = false;
+
+            if (isCorrect) {
+                element.classList.add('locked');
+                lives++; updateHearts();
+            } else {
+                element.classList.add('wrong');
+            }
+
+            revivalAnswered++;
+            setTimeout(() => loadRevivalQuestion(), 1000);
+        }
+
+        function finishRevival() {
+            document.getElementById('revival-screen').classList.add('hidden');
+            if (lives > 0) {
+                document.getElementById('game-screen').classList.remove('hidden');
+                loadQuestion(); // Hồi sinh thành công, chơi lại câu vừa bị chết
+            } else {
+                document.getElementById('game-over-screen').classList.remove('hidden');
+            }
+        }
+
+        // === CHUYỂN CẢNH ===
+        function showReward() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('keyword-display').innerText = challenges[currentLevel].keyword;
+            document.getElementById('reward-screen').classList.remove('hidden');
+        }
+
+        function nextLevel() {
+            document.getElementById('reward-screen').classList.add('hidden');
+            currentLevel++;
+            currentSubQuestion = 0; // Reset lại chỉ số câu hỏi con cho vòng mới
+
+            if (currentLevel < challenges.length) {
+                document.getElementById('game-screen').classList.remove('hidden');
+                loadQuestion();
+            } else {
+                document.getElementById('victory-screen').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
