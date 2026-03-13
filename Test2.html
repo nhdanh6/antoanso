@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Safe Human Test - AI Brainstorming Core</title>
+    <style>
+        /* === CSS CƠ BẢN TỐI GIẢN & CYBER === */
+        body {
+            background-color: #050505; color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        .container {
+            border: 2px solid #00ff00; width: 95%; max-width: 900px; height: 90vh;
+            background-color: #000; position: relative; display: flex; flex-direction: column;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+
+        .hidden { display: none !important; }
+        h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+
+        /* === KHU VỰC HUD & NHÂN VẬT === */
+        .header {
+            border-bottom: 1px dashed #00ff00; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .character-section {
+            display: flex; align-items: flex-start; gap: 20px; padding: 20px;
+            background: rgba(0, 255, 0, 0.05); border-bottom: 1px solid #00ff00;
+        }
+
+        .avatar {
+            width: 80px; height: 80px; border: 2px solid #00ff00; border-radius: 10px;
+            animation: floatAvatar 3s ease-in-out infinite; background: #0a0a0a;
+        }
+
+        @keyframes floatAvatar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .chat-bubble { flex-grow: 1; font-size: 1.1em; line-height: 1.5; }
+        .cursor::after { content: '█'; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* === KHU VỰC BAY LƠ LỬNG (ĐỘNG NÃO) === */
+        .storm-area {
+            flex-grow: 1; position: relative; overflow: hidden;
+            background: radial-gradient(circle, #0a0a0a 0%, #000000 100%);
+        }
+
+        .idea-node {
+            position: absolute; background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00; padding: 10px 15px; border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,255,0,0.2); font-size: 14px;
+            animation: floatNode 6s infinite alternate ease-in-out;
+            max-width: 200px; word-wrap: break-word; text-align: center;
+            opacity: 0; transform: scale(0.5); transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .idea-node.visible { opacity: 1; transform: scale(1); }
+
+        @keyframes floatNode {
+            0% { transform: translate(0, 0) rotate(-2deg); }
+            100% { transform: translate(10px, -20px) rotate(2deg); }
+        }
+
+        .idea-node.analyzing { animation: suckIntoCenter 1.5s forwards cubic-bezier(0.5, 0, 0.5, 1); }
+
+        @keyframes suckIntoCenter {
+            100% { top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.1); opacity: 0; filter: brightness(2); }
+        }
+
+        /* === KHU VỰC NHẬP LIỆU === */
+        .input-section {
+            display: flex; flex-direction: column; padding: 15px 20px; border-top: 1px solid #00ff00; gap: 5px;
+            background: #050505;
+        }
+
+        .input-row { display: flex; gap: 10px; width: 100%; }
+
+        .input-box {
+            flex-grow: 1; background: transparent; border: 1px dashed #00ff00;
+            color: #00ff00; padding: 15px; font-size: 16px; font-family: inherit; outline: none;
+        }
+        .input-box:focus { border-style: solid; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
+
+        /* Chỉnh CSS Warning text cực nhỏ gọn, không phá bố cục */
+        .warning-text { color: #ffaa00; font-size: 13px; font-style: italic; min-height: 15px; text-align: left; }
+
+        .btn {
+            background: #00ff00; color: #000; border: none; padding: 10px 25px;
+            font-size: 16px; font-weight: bold; font-family: inherit; cursor: pointer;
+            text-transform: uppercase; transition: 0.2s;
+        }
+        .btn:hover { background: #fff; box-shadow: 0 0 15px #00ff00; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; border: 1px solid #666; }
+
+        /* Màn hình kết quả & Báo cáo */
+        .center-screen {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100%; padding: 20px; text-align: center;
+        }
+        
+        .reward-text {
+            font-size: 3em; font-weight: bold; color: #fff;
+            text-shadow: 0 0 30px #00ff00; margin: 30px 0; letter-spacing: 5px;
+        }
+
+        #report-area {
+            width: 80%; height: 60%; background: #0a0a0a; border: 1px solid #00ff00;
+            overflow-y: auto; text-align: left; padding: 20px; margin-bottom: 20px;
+        }
+        .report-item { margin-bottom: 10px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
+        .report-q { color: #ffaa00; font-weight: bold; margin-bottom: 5px; }
+        .report-a { color: #00ff00; margin-left: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app-container">
+        
+        <div id="intro-screen" class="center-screen">
+            <h1>> HỆ THỐNG XÁC MINH NHẬN THỨC <</h1>
+            <div style="text-align: left; border: 1px dashed #00ff00; padding: 20px; margin: 20px; background: rgba(0,255,0,0.05); max-width: 600px;">
+                <p>Kích hoạt giao thức Brainstorming...</p>
+                <p>1. Hệ thống sẽ đưa ra các tình huống giả định trên không gian mạng.</p>
+                <p>2. Không có đáp án đúng/sai. Bạn cần <span style="color:#ffaa00">tự gõ ý tưởng</span> của mình.</p>
+                <p>3. Gõ tối thiểu <span style="color:#00ff00; font-weight:bold;">3 ý tưởng</span> cho mỗi tình huống để Lõi Năng Lượng hoạt động.</p>
+                <p>4. Hoàn thành để trích xuất 5 TỪ KHÓA quy tắc an toàn.</p>
+            </div>
+            <button class="btn" onclick="startGame()">Kết nối dữ liệu</button>
+        </div>
+
+        <div id="brainstorm-screen" class="hidden" style="height: 100%; flex-direction: column;">
+            <div class="header">
+                <span id="level-indicator">Tiến trình: 1/5</span>
+                <span id="idea-counter" style="color: #ffaa00;">Dữ liệu: 0/3</span>
+            </div>
+            
+            <div class="character-section">
+                <img class="avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=BrainBot" alt="Bot">
+                <div class="chat-bubble">
+                    <strong style="color:#ffaa00;">TÌNH HUỐNG:</strong><br>
+                    <span id="instruction" class="cursor"></span>
+                </div>
+            </div>
+
+            <div class="storm-area" id="storm-area"></div>
+
+            <div class="input-section">
+                <div id="warning-msg" class="warning-text"></div>
+                <div class="input-row">
+                    <input type="text" id="idea-input" class="input-box" placeholder="Gõ ý tưởng của bạn và nhấn Enter..." autocomplete="off" disabled>
+                    <button class="btn" id="submit-btn" onclick="submitIdea()" disabled>TRUYỀN</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="analysis-screen" class="hidden center-screen">
+            <h2 class="cursor">> ĐANG TỔNG HỢP DỮ LIỆU ĐÁM ĐÔNG...</h2>
+            <p style="color: #ffaa00;">Dựa trên các rủi ro bạn vừa đưa ra, hệ thống trích xuất quy tắc cốt lõi:</p>
+            <div class="reward-text" id="keyword-display">TỪ KHÓA</div>
+            <p>Hãy ghi từ khóa này vào Phiếu Xác Minh.</p>
+            <button class="btn" onclick="nextLevel()">Tiếp tục >></button>
+        </div>
+
+        <div id="victory-screen" class="hidden center-screen">
+            <h1 style="color: #00ff00;">> XÁC MINH HOÀN TẤT <</h1>
+            <p>Bạn đã đóng góp rất nhiều ý tưởng xuất sắc để bảo vệ không gian mạng.</p>
+            
+            <div id="report-area" class="hidden"></div>
+            
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button class="btn" onclick="showReport()">Xuất Báo Cáo Ý Tưởng</button>
+                <button class="btn" style="background: transparent; color: #00ff00; border: 1px solid #00ff00;" onclick="location.reload()">Khởi động lại</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // === DÁN API KEY CỦA BẠN VÀO DÒNG DƯỚI ĐÂY ===
+        const GEMINI_API_KEY = 'AIzaSyAPorw3VexKvEfCety768EZDJ5BNk0rO-M';
+
+        // === DỮ LIỆU CÁC TÌNH HUỐNG ĐỘNG NÃO MỞ ===
+        const scenarios = [
+            { keyword: "GIỮ AN TOÀN", prompt: "Hệ thống yêu cầu bạn tạo một tài khoản công khai. Hãy liệt kê nhanh 3 loại thông tin cá nhân mà bạn TUYỆT ĐỐI KHÔNG NÊN gõ vào hồ sơ mạng xã hội:", requiredIdeas: 3 },
+            { keyword: "KHÔNG GẶP GỠ", prompt: "Một người bạn chơi game chung 2 tháng rủ bạn ra quán trà sữa gặp mặt. Hãy liệt kê 3 RỦI RO (điều tồi tệ) có thể xảy ra nếu bạn đi một mình:", requiredIdeas: 3 },
+            { keyword: "ĐỪNG CHẤP NHẬN", prompt: "Đang lướt web, một bảng thông báo hiện lên: 'Bạn là người thứ 1 triệu! Tải ngay file QUATANG.exe để nhận iPhone'. Nếu bạn ấn tải, 3 hậu quả nào có thể xảy ra với máy tính của bạn?", requiredIdeas: 3 },
+            { keyword: "KIỂM TRA ĐỘ TIN CẬY", prompt: "Bạn thấy một bài đăng: 'Ăn kẹo mút chữa được bệnh ung thư' với hàng ngàn lượt Share. Hãy đưa ra 3 CÁCH để bạn tự kiểm chứng xem tin này là thật hay giả:", requiredIdeas: 3 },
+            { keyword: "HÃY NÓI RA", prompt: "Một nhóm nặc danh liên tục nhắn tin chửi bới và đe dọa bạn trên mạng. Thay vì im lặng chịu đựng, bạn có thể LÀM NHỮNG HÀNH ĐỘNG GÌ để tự bảo vệ mình? (Nêu 3 cách)", requiredIdeas: 3 }
+        ];
+
+        let currentLevel = 0; let currentIdeas = 0; let allCollectedData = []; 
+        let typeInterval; let isTyping = false;
+
+        const inputField = document.getElementById('idea-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const stormArea = document.getElementById('storm-area');
+        const ideaCounter = document.getElementById('idea-counter');
+        const warningMsg = document.getElementById('warning-msg');
+
+        inputField.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && !submitBtn.disabled) submitIdea();
+        });
+
+        function typeWriter(text, elementId, speed, callback) {
+            const el = document.getElementById(elementId); el.innerHTML = ''; let i = 0; isTyping = true;
+            clearInterval(typeInterval);
+            typeInterval = setInterval(() => {
+                if (i < text.length) { el.innerHTML += text.charAt(i); i++; } 
+                else { clearInterval(typeInterval); isTyping = false; if(callback) callback(); }
+            }, speed);
+        }
+
+        function startGame() {
+            document.getElementById('intro-screen').classList.add('hidden');
+            const bs = document.getElementById('brainstorm-screen'); bs.classList.remove('hidden'); bs.style.display = 'flex';
+            loadScenario();
+        }
+
+        function loadScenario() {
+            const data = scenarios[currentLevel];
+            currentIdeas = 0; stormArea.innerHTML = ''; warningMsg.innerText = '';
+            ideaCounter.innerText = `Dữ liệu: 0/${data.requiredIdeas}`;
+            document.getElementById('level-indicator').innerText = `Tình huống: ${currentLevel + 1}/${scenarios.length}`;
+            inputField.disabled = true; submitBtn.disabled = true; inputField.placeholder = "Hệ thống đang truyền tải câu hỏi...";
+
+            typeWriter(data.prompt, 'instruction', 30, () => {
+                inputField.disabled = false; submitBtn.disabled = false;
+                inputField.placeholder = "Gõ ý tưởng của bạn và nhấn Enter..."; inputField.focus();
+            });
+        }
+
+        // === HÀM GỌI AI KIỂM DUYỆT (GEMINI 2.5 FLASH + CHỐNG TRÙNG LẶP) ===
+        // === HÀM GỌI AI KIỂM DUYỆT (CÓ BÁO LỖI CHI TIẾT TỪ SERVER) ===
+        async function verifyIdeaWithAI(scenarioPrompt, studentInput, previousIdeas) {
+            let previousText = previousIdeas.length > 0 ? previousIdeas.map((id, i) => `${i + 1}. ${id}`).join("\n") : "Chưa có ý tưởng nào.";
+            const aiPrompt = `
+            Đóng vai chuyên gia An ninh mạng chấm điểm. Bối cảnh: "${scenarioPrompt}"
+            DANH SÁCH CÁC Ý TƯỞNG ĐÃ ĐƯỢC DUYỆT:
+            ${previousText}
+            Ý tưởng MỚI cần chấm: "${studentInput}"
+            
+            Đánh giá ý tưởng MỚI theo 4 quy tắc. CHỈ CHỌN 1 CÁCH TRẢ LỜI:
+            1. Nếu gõ vô nghĩa (asdasd), spam, chửi bậy -> Trả lời: "LỖI: Dữ liệu vô nghĩa hoặc vi phạm."
+            2. Nếu HOÀN TOÀN LẠC ĐỀ -> Trả lời: "LỖI: Ý tưởng không liên quan."
+            3. Nếu bị TRÙNG LẶP, TỪ ĐỒNG NGHĨA, hoặc Ý CON của câu trong Danh sách đã duyệt -> Trả lời: "LỖI: Ý này bị trùng lặp hoặc quá giống ý trước."
+            4. Nếu ĐÚNG, HỢP LÝ và CHƯA XUẤT HIỆN -> Trả lời duy nhất chữ: "OK"
+            `;
+            
+            try {
+                // Sử dụng gemini-2.0-flash làm bản tiêu chuẩn, ổn định nhất
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: aiPrompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 60 } })
+                });
+
+                if (!response.ok) {
+                    // ĐỌC LỖI CHI TIẾT TỪ GOOGLE THAY VÌ BÁO LỖI CHUNG CHUNG
+                    const errorData = await response.json();
+                    return `LỖI GOOGLE (${response.status}): ${errorData.error.message}`;
+                }
+
+                const data = await response.json();
+                const resultText = data.candidates[0].content.parts[0].text.trim();
+                
+                if (resultText === "OK" || resultText.toUpperCase().includes("OK")) return "OK";
+                return resultText; 
+            } catch (error) {
+                return `LỖI MẠNG: ${error.message}`;
+            }
+        }
+        // === XỬ LÝ KHI NHẤN NÚT TRUYỀN ===
+        async function submitIdea() {
+            const text = inputField.value.trim();
+            if (text.length < 2) return;
+            const currentScenario = scenarios[currentLevel].prompt;
+
+            // Đổi trạng thái UI báo hiệu AI đang xử lý
+            warningMsg.style.color = "#ffaa00"; warningMsg.innerText = "Trí tuệ nhân tạo đang phân tích dữ liệu...";
+            inputField.disabled = true; submitBtn.disabled = true; submitBtn.innerText = "ĐANG CHỜ";
+
+            // Lọc danh sách các câu đã trả lời trước đó
+            const previousIdeas = allCollectedData.filter(d => d.level === currentLevel).map(d => d.answer);
+
+            // Gửi lên AI
+            const aiJudgment = await verifyIdeaWithAI(currentScenario, text, previousIdeas);
+
+            if (aiJudgment !== "OK") {
+                // Nếu AI bắt lỗi
+                warningMsg.style.color = "#ff003c"; warningMsg.innerText = aiJudgment;
+                inputField.style.borderColor = "#ff003c"; 
+                setTimeout(() => inputField.style.borderColor = "#00ff00", 1000);
+                inputField.disabled = false; submitBtn.disabled = false; submitBtn.innerText = "TRUYỀN"; inputField.focus();
+                return;
+            }
+
+            // Nếu AI cho qua
+            warningMsg.innerText = "";
+            allCollectedData.push({ level: currentLevel, question: currentScenario, answer: text });
+            currentIdeas++; inputField.value = ''; submitBtn.innerText = "TRUYỀN";
+            ideaCounter.innerText = `Dữ liệu: ${currentIdeas}/${scenarios[currentLevel].requiredIdeas}`;
+
+            createFloatingNode(text);
+
+            if (currentIdeas < scenarios[currentLevel].requiredIdeas) {
+                inputField.placeholder = "AI đã duyệt! Nhập ý khác (không được trùng)...";
+                inputField.disabled = false; submitBtn.disabled = false; inputField.focus();
+            } else {
+                inputField.placeholder = "Đang phân tích Lõi Dữ Liệu...";
+                setTimeout(() => triggerAnalysis(), 1000);
+            }
+        }
+
+        function createFloatingNode(text) {
+            const node = document.createElement('div'); node.className = 'idea-node'; node.innerText = text;
+            node.style.top = `${Math.floor(Math.random() * 70) + 10}%`; node.style.left = `${Math.floor(Math.random() * 70) + 10}%`;
+            stormArea.appendChild(node); setTimeout(() => node.classList.add('visible'), 50);
+        }
+
+        function triggerAnalysis() {
+            document.querySelectorAll('.idea-node').forEach(node => node.classList.add('analyzing'));
+            setTimeout(() => {
+                document.getElementById('brainstorm-screen').classList.add('hidden'); document.getElementById('brainstorm-screen').style.display = 'none';
+                document.getElementById('keyword-display').innerText = scenarios[currentLevel].keyword;
+                document.getElementById('analysis-screen').classList.remove('hidden'); document.getElementById('analysis-screen').style.display = 'flex';
+            }, 1500);
+        }
+
+        function nextLevel() {
+            document.getElementById('analysis-screen').classList.add('hidden'); document.getElementById('analysis-screen').style.display = 'none';
+            currentLevel++;
+            if (currentLevel < scenarios.length) {
+                const bs = document.getElementById('brainstorm-screen'); bs.classList.remove('hidden'); bs.style.display = 'flex'; loadScenario();
+            } else {
+                const vs = document.getElementById('victory-screen'); vs.classList.remove('hidden'); vs.style.display = 'flex';
+            }
+        }
+
+        function showReport() {
+            const reportArea = document.getElementById('report-area');
+            reportArea.innerHTML = '<h3 style="color:#00ff00; border-bottom: 1px dashed #00ff00; padding-bottom: 10px;">BÁO CÁO TỔNG HỢP Ý TƯỞNG</h3>';
+            reportArea.classList.remove('hidden');
+
+            for (let i = 0; i < scenarios.length; i++) {
+                const ideasForLevel = allCollectedData.filter(d => d.level === i);
+                if (ideasForLevel.length > 0) {
+                    const block = document.createElement('div'); block.className = 'report-item';
+                    const qElement = document.createElement('div'); qElement.className = 'report-q'; qElement.innerText = `Tình huống ${i + 1}: ${scenarios[i].keyword}`;
+                    block.appendChild(qElement);
+                    ideasForLevel.forEach(idea => {
+                        const aElement = document.createElement('div'); aElement.className = 'report-a'; aElement.innerText = `> ${idea.answer}`; block.appendChild(aElement);
+                    });
+                    reportArea.appendChild(block);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
